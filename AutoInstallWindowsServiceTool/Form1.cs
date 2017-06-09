@@ -21,7 +21,7 @@ namespace AutoInstallWindowsServiceTool
 
         private void Form1_Load(object sender, EventArgs e)
         {
-            DirectoryInfo dir = new DirectoryInfo(Application.StartupPath);
+            DirectoryInfo dir = new DirectoryInfo(Environment.CurrentDirectory);
             var allExecuteFiles = dir.GetFiles("*.exe");
             foreach(var file in allExecuteFiles)
             {
@@ -35,8 +35,10 @@ namespace AutoInstallWindowsServiceTool
             if (!string.IsNullOrEmpty(selectedFile))
             {
                 var process = new Process();
-                process.StartInfo.FileName = InstallUtil;
-                process.StartInfo.Arguments = $"\"{selectedFile}\"";
+                process.StartInfo.FileName = "cmd.exe";
+                process.StartInfo.Arguments = $"/c {InstallUtil} \"{selectedFile}\" && @pause";
+                process.StartInfo.Environment["InstallService"] = selectedFile;
+                process.StartInfo.UseShellExecute = false;
                 process.EnableRaisingEvents = true;
                 process.Exited += Process_Exited;
                 process.Start();
@@ -45,7 +47,7 @@ namespace AutoInstallWindowsServiceTool
 
         private void Process_Exited(object sender, EventArgs e)
         {
-            var selectedFile = (sender as Process).StartInfo.Arguments.Trim('\"');
+            var selectedFile = (sender as Process).StartInfo.Environment["InstallService"];
             var winsvc = WinService.GetWinServiceByPathName(selectedFile);
             if (winsvc != null)
             {
@@ -59,7 +61,7 @@ namespace AutoInstallWindowsServiceTool
             var selectedFile = GetSelectedFilePath();
             if (!string.IsNullOrEmpty(selectedFile))
             {
-                process = Process.Start(InstallUtil, $"/u \"{selectedFile}\"");
+                process = Process.Start("cmd.exe", $"/c {InstallUtil} /u \"{selectedFile}\" && @pause");
             }
         }
 
@@ -87,7 +89,7 @@ namespace AutoInstallWindowsServiceTool
                 return string.Empty;
             }
 
-            return Path.Combine(Application.StartupPath, fileName);
+            return Path.Combine(Environment.CurrentDirectory, fileName);
         }
 
         private void itmeServiceRun_Click(object sender, EventArgs e)
